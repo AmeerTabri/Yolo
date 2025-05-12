@@ -1,0 +1,11 @@
+[Unit]
+Description=YOLO Python Server
+After=network.target
+
+[Service]
+WorkingDirectory=/home/ubuntu/yolo
+ExecStart=/home/ubuntu/yolo/.venv/bin/python /home/ubuntu/yolo/app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
