@@ -3,8 +3,8 @@ Description=YOLO Python Server
 After=network.target
 
 [Service]
-WorkingDirectory=/home/ubuntu/yolo
-ExecStart=/home/ubuntu/yolo/.venv/bin/python /home/ubuntu/yolo/app.py
+WorkingDirectory=/home/ubuntu/Yolo
+ExecStart=/home/ubuntu/Yolo/.venv/bin/python /home/ubuntu/Yolo/app.py
 Restart=always
 
 [Install]
