@@ -65,6 +65,7 @@ def save_prediction_session(uid, original_image, predicted_image):
             VALUES (?, ?, ?)
         """, (uid, original_image, predicted_image))
 
+
 def save_detection_object(prediction_uid, label, score, box):
     """
     Save detection object to database
