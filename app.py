@@ -6,6 +6,10 @@ import sqlite3
 import os
 import uuid
 import shutil
+from pydantic import BaseModel
+from typing import Optional
+from s3 import download_image_from_s3, upload_predicted_image_to_s3
+
 
 # Disable GPU usage
 import torch
@@ -21,7 +25,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(PREDICTED_DIR, exist_ok=True)
 
 # Download the AI model (tiny model ~6MB)
-model = YOLO("yolov8n.pt")  
+model = YOLO("yolov8n.pt")
+
+
+class S3ImageRequest(BaseModel):
+    chat_id: str
+    image_name: str
+
 
 # Initialize SQLite
 def init_db():
@@ -76,26 +86,56 @@ def save_detection_object(prediction_uid, label, score, box):
         """, (prediction_uid, label, score, str(box)))
 
 @app.post("/predict")
-def predict(file: UploadFile = File(...)):
+async def predict(
+    request: Request,
+    file: Optional[UploadFile] = File(None)
+):
     """
-    Predict objects in an image
+    Predict from S3 (via chat_id + image_name) or from uploaded file
     """
-    ext = os.path.splitext(file.filename)[1]
     uid = str(uuid.uuid4())
-    original_path = os.path.join(UPLOAD_DIR, uid + ext)
-    predicted_path = os.path.join(PREDICTED_DIR, uid + ext)
+    ext = ".jpg"  # assume default extension for output file
+    chat_id = image_name = None
 
-    with open(original_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    # 1️⃣ Try JSON body with image_name + chat_id
+    try:
+        json_data = await request.json()
+        if "image_name" in json_data and "chat_id" in json_data:
+            image_name = json_data["image_name"]
+            chat_id = json_data["chat_id"]
 
+            original_path = f"/tmp/{uid}_original_{image_name}"
+            predicted_path = f"/tmp/{uid}_predicted_{image_name}"
+
+            download_image_from_s3(chat_id, image_name, original_path)
+            ext = os.path.splitext(image_name)[1]
+        else:
+            raise ValueError
+    except:
+        # 2️⃣ Fallback to file upload
+        if file is not None:
+            ext = os.path.splitext(file.filename)[1]
+            original_path = os.path.join(UPLOAD_DIR, uid + ext)
+            predicted_path = os.path.join(PREDICTED_DIR, uid + ext)
+            with open(original_path, "wb") as f:
+                shutil.copyfileobj(file.file, f)
+        else:
+            raise HTTPException(status_code=400, detail="No image_name+chat_id or file provided")
+
+    # 3️⃣ Run YOLO prediction
     results = model(original_path, device="cpu")
-
-    annotated_frame = results[0].plot()  # NumPy image with boxes
+    annotated_frame = results[0].plot()
     annotated_image = Image.fromarray(annotated_frame)
     annotated_image.save(predicted_path)
 
+    # 4️⃣ Save predicted image to S3 (only if JSON mode)
+    if "chat_id" in locals():
+        upload_predicted_image_to_s3(chat_id, image_name, predicted_path)
+
+    # 5️⃣ Save session to DB
     save_prediction_session(uid, original_path, predicted_path)
-    
+
+    # 6️⃣ Store detections in DB
     detected_labels = []
     for box in results[0].boxes:
         label_idx = int(box.cls[0].item())
@@ -106,10 +146,11 @@ def predict(file: UploadFile = File(...)):
         detected_labels.append(label)
 
     return {
-        "prediction_uid": uid, 
+        "prediction_uid": uid,
         "detection_count": len(results[0].boxes),
         "labels": detected_labels
     }
+
 
 @app.get("/prediction/{uid}")
 def get_prediction_by_uid(uid: str):
