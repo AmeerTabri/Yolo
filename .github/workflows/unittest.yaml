@@ -1,0 +1,37 @@
+name: Yolo unittesting
+
+#on:
+#  pull_request:
+#    branches:
+#      - main
+
+on:
+  # The workflow will run when a push is made to branch `main`
+  push:
+    branches:
+     - main
+
+jobs:
+  TestImgProcessingChatbotApp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          pip install -r polybot/requirements.txt
+      - name: Test filters
+        run: |
+          echo -e "\n\nTesting concat()\n"
+          python -m polybot.test.test_concat
+          
+          echo -e "\n\nTesting rotate()\n"
+          python -m polybot.test.test_rotate
+          
+          echo -e "\n\nTesting salt_n_pepper()\n"
+          python -m polybot.test.test_salt_n_pepper
+          
+          echo -e "\n\nTesting segment()\n"
+          python -m polybot.test.test_segment
+      - name: Test bot
+        run: |
+          python -m polybot.test.test_telegram_bot
