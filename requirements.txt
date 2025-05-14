@@ -11,3 +11,6 @@ python-multipart>=0.0.6
 
 # PyTorch for deep learning
 torch>=2.0.0
+
+#boto
+boto3
