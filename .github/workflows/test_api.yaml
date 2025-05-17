@@ -56,3 +56,4 @@ jobs:
           
           echo -e "\n\nTesting get predicted image \n"
           python -m test.test_7_get_predicted_image
+
