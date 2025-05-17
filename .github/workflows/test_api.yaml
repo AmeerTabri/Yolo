@@ -31,3 +31,28 @@ jobs:
         run: |
           source .venv/bin/activate
           python -m unittest discover -s test
+          
+      - name: Run API tests
+        run: |
+          source .venv/bin/activate
+          
+          echo -e "\n\nTesting prediction\n"
+          python -m test.test_1_predict
+          
+          echo -e "\n\nTesting prediction by id\n"
+          python -m test.test_2_predict_by_id
+          
+          echo -e "\n\nTesting prediction by label\n"
+          python -m test.test_3_predict_by_label
+          
+          echo -e "\n\nTesting prediction by score\n"
+          python -m test.test_4_predict_by_score
+          
+          echo -e "\n\nTesting prediction by image\n"
+          python -m test.test_5_predict_by_image
+          
+          echo -e "\n\nTesting get original by image\n"
+          python -m test.test_6_get_original_by_image
+          
+          echo -e "\n\nTesting get predicted image \n"
+          python -m test.test_7_get_predicted_image 
