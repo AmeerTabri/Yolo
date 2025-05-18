@@ -119,8 +119,8 @@ async def predict(
         # Fallback to file upload
         if file is not None:
             ext = os.path.splitext(file.filename)[1]
-            original_path = os.path.join(UPLOAD_DIR, uid + ext)
-            predicted_path = os.path.join(PREDICTED_DIR, uid + ext)
+            original_path = os.path.join("/tmp", uid + ext)
+            predicted_path = os.path.join("/tmp", uid + "_predicted" + ext)
             with open(original_path, "wb") as f:
                 shutil.copyfileobj(file.file, f)
         else:
@@ -149,11 +149,19 @@ async def predict(
         save_detection_object(uid, label, score, bbox)
         detected_labels.append(label)
 
+    # Clean up temporary files
+    try:
+        os.remove(original_path)
+        os.remove(predicted_path)
+    except Exception as e:
+        print(f"Cleanup failed: {e}")
+
     return {
         "prediction_uid": uid,
         "detection_count": len(results[0].boxes),
         "labels": detected_labels
     }
+
 
 
 @app.get("/prediction/{uid}")
