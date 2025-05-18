@@ -7,7 +7,7 @@ WorkingDirectory=/home/ubuntu/yolo
 ExecStart=/home/ubuntu/yolo/.venv/bin/python /home/ubuntu/yolo/app.py
 Restart=always
 Environment=AWS_REGION=us-east-1
-Environment=AWS_S3_BUCKET=john-polybot-images
+Environment=AWS_S3_BUCKET=ameer-polybot-images
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.targe
