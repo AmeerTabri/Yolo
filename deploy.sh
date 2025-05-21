@@ -29,3 +29,5 @@ if ! systemctl is-active --quiet yolo.service; then
 else
   echo "✅ yolo.service is running."
 fi
+
+# hi
