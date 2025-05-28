@@ -33,7 +33,7 @@ jobs:
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_DEV_HOST: ${{ secrets.EC2_DEV_HOST }}
+          EC2_HOST: ${{ secrets.EC2_DEV_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
         run: |
           mkdir -p ~/.ssh
@@ -41,7 +41,7 @@ jobs:
           chmod 600 ~/.ssh/private_key
           cat > ~/.ssh/config << EOF
           Host ec2
-              HostName EC2_DEV_HOST
+              HostName $EC2_HOST
               User $EC2_USERNAME
               IdentityFile ~/.ssh/private_key
               StrictHostKeyChecking no
