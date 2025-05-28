@@ -12,10 +12,12 @@ if [ ! -d ".venv" ]; then
   python3 -m venv .venv || { echo "❌ Failed to create virtualenv"; exit 1; }
 fi
 
-# Step 1.5: Ensure pip is available
+# Step 1.5: Force install pip if missing (Ubuntu 24.04 bug workaround)
 if [ ! -x ".venv/bin/pip" ]; then
-  echo "⚠️ pip not found, installing manually with ensurepip..."
-  ./.venv/bin/python -m ensurepip --upgrade
+  echo "⚠️ pip still not found, using get-pip.py workaround..."
+  curl -sS https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+  ./.venv/bin/python get-pip.py
+  rm get-pip.py
 fi
 
 # Step 2: Install dependencies directly using venv pip
