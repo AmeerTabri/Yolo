@@ -2,6 +2,10 @@
 
 cd ~/Yolo  # or /mnt/Yolo if you use that
 
+# Ensure Python + pip + venv are installed
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip
+
 # Step 1: Create venv if it doesn't exist
 if [ ! -d ".venv" ]; then
   echo "Creating virtual environment..."
