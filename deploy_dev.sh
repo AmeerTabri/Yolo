@@ -5,7 +5,7 @@ cd ~/Yolo  # or /mnt/Yolo if you use that
 # Step 1: Create venv if it doesn't exist
 if [ ! -d ".venv" ]; then
   echo "Creating virtual environment..."
-  python3 -m venv .venv
+  python3 -m venv .venv || { echo "❌ Failed to create virtual environment."; exit 1; }
 fi
 
 # Step 2: Install dependencies directly using venv pip
