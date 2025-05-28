@@ -6,10 +6,16 @@ cd ~/Yolo  # or /mnt/Yolo if you use that
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip
 
-# Step 1: Create venv if it doesn't exist
+# Step 1: Create virtual environment
 if [ ! -d ".venv" ]; then
   echo "Creating virtual environment..."
-  python3 -m venv .venv || { echo "❌ Failed to create virtual environment."; exit 1; }
+  python3 -m venv .venv || { echo "❌ Failed to create virtualenv"; exit 1; }
+fi
+
+# Step 1.5: Ensure pip is available
+if [ ! -x ".venv/bin/pip" ]; then
+  echo "⚠️ pip not found, installing manually with ensurepip..."
+  ./.venv/bin/python -m ensurepip --upgrade
 fi
 
 # Step 2: Install dependencies directly using venv pip
