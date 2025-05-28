@@ -23,9 +23,9 @@ sudo systemctl enable yolo_dev.service
 
 # Step 5: Check if service is active
 if ! systemctl is-active --quiet yolo_dev.service; then
-  echo "❌ yolo.service is not running."
+  echo "❌ yolo_dev.service is not running."
   sudo systemctl status yolo_dev.service --no-pager
   exit 1
 else
-  echo "✅ yolo.service is running."
+  echo "✅ yolo_dev.service is running."
 fi
