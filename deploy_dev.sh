@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd /home/ubuntu/Yolo  # or /mnt/Yolo if you use that
+cd ~/Yolo  # or /mnt/Yolo if you use that
 
 # Step 1: Create venv if it doesn't exist
 if [ ! -d ".venv" ]; then
@@ -8,15 +8,17 @@ if [ ! -d ".venv" ]; then
   python3 -m venv .venv
 fi
 
-# Step 2: Activate venv and install dependencies
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+# Step 2: Install dependencies directly using venv pip
+echo "Installing dependencies..."
+./.venv/bin/pip install --upgrade pip
+./.venv/bin/pip install -r requirements.txt
 
 # Step 3: Copy the systemd service file
+echo "Copying systemd service file..."
 sudo cp yolo_dev.service /etc/systemd/system/
 
 # Step 4: Reload and restart the service
+echo "Restarting yolo_dev.service..."
 sudo systemctl daemon-reload
 sudo systemctl restart yolo_dev.service
 sudo systemctl enable yolo_dev.service
