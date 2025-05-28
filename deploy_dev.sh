@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ~/Yolo  # or /mnt/Yolo if you use that
+cd /home/ubuntu/Yolo  # or /mnt/Yolo if you use that
 
 # Step 1: Create venv if it doesn't exist
 if [ ! -d ".venv" ]; then
