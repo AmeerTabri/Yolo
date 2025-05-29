@@ -43,3 +43,4 @@ if ! systemctl is-active --quiet yolo_dev.service; then
 else
   echo "✅ yolo_dev.service is running."
 fi
+
