@@ -6,9 +6,13 @@ import sqlite3
 import os
 import uuid
 import shutil
+from pydantic import BaseModel
+from typing import Optional
+from s3 import download_image_from_s3, upload_predicted_image_to_s3
 
 # Disable GPU usage
 import torch
+
 torch.cuda.is_available = lambda: False
 
 app = FastAPI()
@@ -21,7 +25,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(PREDICTED_DIR, exist_ok=True)
 
 # Download the AI model (tiny model ~6MB)
-model = YOLO("yolov8n.pt")  
+model = YOLO("yolov8n.pt")
+
+
+class S3ImageRequest(BaseModel):
+    chat_id: str
+    image_name: str
+
 
 # Initialize SQLite
 def init_db():
@@ -35,7 +45,7 @@ def init_db():
                 predicted_image TEXT
             )
         """)
-        
+
         # Create the objects table to store individual detected objects in a given image
         conn.execute("""
             CREATE TABLE IF NOT EXISTS detection_objects (
@@ -47,13 +57,15 @@ def init_db():
                 FOREIGN KEY (prediction_uid) REFERENCES prediction_sessions (uid)
             )
         """)
-        
+
         # Create index for faster queries
         conn.execute("CREATE INDEX IF NOT EXISTS idx_prediction_uid ON detection_objects (prediction_uid)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_label ON detection_objects (label)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_score ON detection_objects (score)")
 
+
 init_db()
+
 
 def save_prediction_session(uid, original_image, predicted_image):
     """
@@ -78,26 +90,56 @@ def save_detection_object(prediction_uid, label, score, box):
 
 
 @app.post("/predict")
-def predict(file: UploadFile = File(...)):
+async def predict(
+        request: Request,
+        file: Optional[UploadFile] = File(None)
+):
     """
-    Predict objects in an image
+    Predict from S3 (via chat_id + image_name) or from uploaded file
     """
-    ext = os.path.splitext(file.filename)[1]
     uid = str(uuid.uuid4())
-    original_path = os.path.join(UPLOAD_DIR, uid + ext)
-    predicted_path = os.path.join(PREDICTED_DIR, uid + ext)
+    ext = ".jpg"  # assume default extension for output file
+    chat_id = image_name = None
 
-    with open(original_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    # Try JSON body with image_name + chat_id
+    try:
+        json_data = await request.json()
+        if "image_name" in json_data and "chat_id" in json_data:
+            image_name = json_data["image_name"]
+            chat_id = json_data["chat_id"]
 
+            original_path = f"/tmp/{uid}_original_{image_name}"
+            predicted_path = f"/tmp/{uid}_predicted_{image_name}"
+
+            download_image_from_s3(chat_id, image_name, original_path)
+            ext = os.path.splitext(image_name)[1]
+        else:
+            raise ValueError
+    except:
+        # Fallback to file upload
+        if file is not None:
+            ext = os.path.splitext(file.filename)[1]
+            original_path = os.path.join("/tmp", uid + ext)
+            predicted_path = os.path.join("/tmp", uid + "_predicted" + ext)
+            with open(original_path, "wb") as f:
+                shutil.copyfileobj(file.file, f)
+        else:
+            raise HTTPException(status_code=400, detail="No image_name+chat_id or file provided")
+
+    # Run YOLO prediction
     results = model(original_path, device="cpu")
-
-    annotated_frame = results[0].plot()  # NumPy image with boxes
+    annotated_frame = results[0].plot()
     annotated_image = Image.fromarray(annotated_frame)
     annotated_image.save(predicted_path)
 
+    # Save predicted image to S3 (only if JSON mode)
+    if "chat_id" in locals():
+        upload_predicted_image_to_s3(chat_id, image_name, predicted_path)
+
+    # Save session to DB
     save_prediction_session(uid, original_path, predicted_path)
-    
+
+    # Store detections in DB
     detected_labels = []
     for box in results[0].boxes:
         label_idx = int(box.cls[0].item())
@@ -107,11 +149,20 @@ def predict(file: UploadFile = File(...)):
         save_detection_object(uid, label, score, bbox)
         detected_labels.append(label)
 
+    # Clean up temporary files
+    try:
+        os.remove(original_path)
+        os.remove(predicted_path)
+    except Exception as e:
+        print(f"Cleanup failed: {e}")
+
     return {
-        "prediction_uid": uid, 
+        "prediction_uid": uid,
         "detection_count": len(results[0].boxes),
         "labels": detected_labels
     }
+
+
 
 @app.get("/prediction/{uid}")
 def get_prediction_by_uid(uid: str):
@@ -124,13 +175,13 @@ def get_prediction_by_uid(uid: str):
         session = conn.execute("SELECT * FROM prediction_sessions WHERE uid = ?", (uid,)).fetchone()
         if not session:
             raise HTTPException(status_code=404, detail="Prediction not found")
-            
+
         # Get all detection objects for this prediction
         objects = conn.execute(
-            "SELECT * FROM detection_objects WHERE prediction_uid = ?", 
+            "SELECT * FROM detection_objects WHERE prediction_uid = ?",
             (uid,)
         ).fetchall()
-        
+
         return {
             "uid": session["uid"],
             "timestamp": session["timestamp"],
@@ -146,6 +197,7 @@ def get_prediction_by_uid(uid: str):
             ]
         }
 
+
 @app.get("/predictions/label/{label}")
 def get_predictions_by_label(label: str):
     """
@@ -159,8 +211,9 @@ def get_predictions_by_label(label: str):
             JOIN detection_objects do ON ps.uid = do.prediction_uid
             WHERE do.label = ?
         """, (label,)).fetchall()
-        
+
         return [{"uid": row["uid"], "timestamp": row["timestamp"]} for row in rows]
+
 
 @app.get("/predictions/score/{min_score}")
 def get_predictions_by_score(min_score: float):
@@ -175,8 +228,9 @@ def get_predictions_by_score(min_score: float):
             JOIN detection_objects do ON ps.uid = do.prediction_uid
             WHERE do.score >= ?
         """, (min_score,)).fetchall()
-        
+
         return [{"uid": row["uid"], "timestamp": row["timestamp"]} for row in rows]
+
 
 @app.get("/image/{type}/{filename}")
 def get_image(type: str, filename: str):
@@ -189,6 +243,7 @@ def get_image(type: str, filename: str):
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(path)
+
 
 @app.get("/prediction/{uid}/image")
 def get_prediction_image(uid: str, request: Request):
@@ -232,4 +287,5 @@ def health():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8080)
