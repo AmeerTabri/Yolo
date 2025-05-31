@@ -5,7 +5,7 @@ After=network.target
 [Service]
 WorkingDirectory=/home/ubuntu/Yolo
 ExecStart=/home/ubuntu/Yolo/.venv/bin/python /home/ubuntu/Yolo/app.py
-EnvironmentFile=/home/ubuntu/Yolo/.env.env
+EnvironmentFile=/home/ubuntu/Yolo/.env.dev
 Restart=always
 
 [Install]
