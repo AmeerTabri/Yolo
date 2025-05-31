@@ -1,13 +1,12 @@
 [Unit]
-Description=YOLO Python Server
+Description=YOLO Python Server Dev
 After=network.target
 
 [Service]
 WorkingDirectory=/home/ubuntu/Yolo
 ExecStart=/home/ubuntu/Yolo/.venv/bin/python /home/ubuntu/Yolo/app.py
+EnvironmentFile=/home/ubuntu/Yolo/.env.prod
 Restart=always
-Environment=AWS_REGION=us-east-1
-Environment=AWS_S3_BUCKET=ameer-polybot-images
 
 [Install]
-WantedBy=multi-user.targe
+WantedBy=multi-user.target

@@ -1,4 +1,6 @@
 .venv
+.env.prod
+.env.dev
 .vscode
 .idea
 .env

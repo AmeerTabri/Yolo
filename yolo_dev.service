@@ -5,8 +5,7 @@ After=network.target
 [Service]
 WorkingDirectory=/home/ubuntu/Yolo
 ExecStart=/home/ubuntu/Yolo/.venv/bin/python /home/ubuntu/Yolo/app.py
-Environment=AWS_REGION=us-east-1
-Environment=AWS_S3_BUCKET=ameer-polybot-images-dev
+EnvironmentFile=/home/ubuntu/Yolo/.env.env
 Restart=always
 
 [Install]
