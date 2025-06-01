@@ -1,6 +1,5 @@
 name: Yolo API Testing
 
-
 on:
   pull_request:
     branches:
@@ -9,6 +8,12 @@ on:
 jobs:
   api-tests:
     runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      AWS_S3_BUCKET: ameer-polybot-images
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
     steps:
       - name: Checkout code
@@ -27,12 +32,12 @@ jobs:
           pip install -r requirements.txt
           pip install httpx
 
-      - name: Run API tests
+      - name: Run unittest discovery
         run: |
           source .venv/bin/activate
           python -m unittest discover -s test
-          
-      - name: Run API tests
+
+      - name: Run detailed API tests
         run: |
           source .venv/bin/activate
           
@@ -55,4 +60,4 @@ jobs:
           python -m test.test_6_get_original_by_image
           
           echo -e "\n\nTesting get predicted image \n"
-          python -m test.test_7_get_predicted_image\
+          python -m test.test_7_get_predicted_image
