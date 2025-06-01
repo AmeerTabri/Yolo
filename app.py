@@ -195,6 +195,7 @@ def get_image(type: str, filename: str):
 @app.get("/prediction/{uid}/image")
 def get_prediction_image(uid: str, request: Request):
     accept = request.headers.get("accept", "")
+
     with sqlite3.connect(DB_PATH) as conn:
         row = conn.execute("SELECT predicted_image FROM prediction_sessions WHERE uid = ?", (uid,)).fetchone()
         if not row:
@@ -202,7 +203,14 @@ def get_prediction_image(uid: str, request: Request):
         image_path = row[0]
 
     if not os.path.exists(image_path):
-        raise HTTPException(status_code=404, detail="Predicted image file not found")
+        # Try recovering from S3 if filename available
+        try:
+            filename = os.path.basename(image_path)
+            chat_id = filename.split("_")[0]  # assumes filename starts with chat_id
+            from s3 import download_predicted_image_from_s3
+            download_predicted_image_from_s3(chat_id, filename, image_path)
+        except Exception as e:
+            raise HTTPException(status_code=404, detail="Predicted image not found locally or on S3")
 
     if "image/png" in accept:
         return FileResponse(image_path, media_type="image/png")
