@@ -277,6 +277,14 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/hello")
+def health():
+    """
+    Health check endpoint
+    """
+    return {"hello world"}
+
+
 if __name__ == "__main__":
     import uvicorn
 

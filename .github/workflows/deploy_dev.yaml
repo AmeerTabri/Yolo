@@ -1,11 +1,11 @@
 # The name of the workflow
-name: Yolo Deploy
+name: Yolo Deploy Dev
 
 on:
   # The workflow will run when a push is made to branch `main`
   push:
     branches:
-     - main
+     - dev
      
   # Allow to run it manually as well from GitHub web
   workflow_dispatch:
@@ -33,7 +33,7 @@ jobs:
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_HOST: ${{ secrets.EC2_DEV_HOST }}
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
         run: |
           mkdir -p ~/.ssh
@@ -49,9 +49,8 @@ jobs:
       
       - name: Copy script to EC2
         run: |
-          ssh ec2 "if [ -d ~/${REPO_NAME} ]; then cd ~/${REPO_NAME} && git pull --rebase; else git clone ${REPO_URL} ~/${REPO_NAME}; fi"
+          ssh ec2 "if [ -d ~/${REPO_NAME} ]; then cd ~/${REPO_NAME} && git checkout dev && git pull origin dev --rebase; else git clone --branch dev ${REPO_URL} ~/${REPO_NAME}; fi"
 
-          
       - name: Execute script on EC2
         run: |
-          ssh ec2 "cd $REPO_NAME && bash deploy.sh"
+          ssh ec2 "cd $REPO_NAME && bash deploy_dev.sh"
