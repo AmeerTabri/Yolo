@@ -1,11 +1,10 @@
 import os
 import boto3
 
-AWS_REGION = os.environ["AWS_REGION"]
-AWS_S3_BUCKET = os.environ["AWS_S3_BUCKET"]
+AWS_REGION="us-east-1"
+AWS_S3_BUCKET="ameer-polybot-images"
 
 s3 = boto3.client("s3", region_name=AWS_REGION)
-
 
 def download_image_from_s3(chat_id: str, image_name: str, local_path: str):
     s3_key = f"{chat_id}/original/{image_name}"
