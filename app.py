@@ -194,27 +194,35 @@ def get_image(type: str, filename: str):
 
 @app.get("/prediction/{uid}/image")
 def get_prediction_image(uid: str, request: Request):
-    accept = request.headers.get("accept", "")
+    accept_header = request.headers.get("accept", "")
 
-    with sqlite3.connect(DB_PATH) as conn:
-        row = conn.execute("SELECT predicted_image FROM prediction_sessions WHERE uid = ?", (uid,)).fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Prediction not found")
-        image_path = row[0]
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            result = conn.execute(
+                "SELECT predicted_image FROM prediction_sessions WHERE uid = ?",
+                (uid,)
+            ).fetchone()
+    except Exception:
+        raise HTTPException(status_code=500, detail="Database error")
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+
+    image_path = result[0]
 
     if not os.path.exists(image_path):
-        # Try recovering from S3 if filename available
         try:
             filename = os.path.basename(image_path)
-            chat_id = filename.split("_")[0]  # assumes filename starts with chat_id
-            from s3 import download_predicted_image_from_s3
+            if "_" not in filename:
+                raise ValueError("Invalid filename format for S3 fallback")
+            chat_id = filename.split("_")[0]
             download_predicted_image_from_s3(chat_id, filename, image_path)
         except Exception as e:
             raise HTTPException(status_code=404, detail="Predicted image not found locally or on S3")
 
-    if "image/png" in accept:
+    if "image/png" in accept_header:
         return FileResponse(image_path, media_type="image/png")
-    elif "image/jpeg" in accept or "image/jpg" in accept:
+    elif "image/jpeg" in accept_header or "image/jpg" in accept_header or "*/*" in accept_header:
         return FileResponse(image_path, media_type="image/jpeg")
     else:
         raise HTTPException(status_code=406, detail="Client does not accept an image format")
