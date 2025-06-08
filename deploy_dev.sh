@@ -1,6 +1,15 @@
 #!/bin/bash
 
-cd ~/Yolo  # or /mnt/Yolo if you use that
+cd ~/Yolo
+
+# Step 0: Create .env.dev from environment (GitHub Actions injects secrets)
+echo "Creating .env.dev..."
+cat <<EOF > .env.dev
+AWS_REGION=${AWS_REGION}
+AWS_S3_BUCKET=${AWS_S3_BUCKET}
+AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+EOF
 
 # Ensure Python + pip + venv are installed
 sudo apt update
