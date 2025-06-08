@@ -1,5 +1,5 @@
 [Unit]
-Description=YOLO Python Server
+Description=YOLO Python Server Dev
 After=network.target
 
 [Service]
