@@ -5,8 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 COPY torch-requirements.txt .
 
-# Fix OpenCV dependency
-RUN apt-get update && apt-get install -y libgl1
+# Fix OpenCV + threading dependencies
+RUN apt-get update && apt-get install -y libgl1 libglib2.0-0
 
 RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir -r torch-requirements.txt
 
