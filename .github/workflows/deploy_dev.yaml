@@ -1,4 +1,4 @@
-name: Polybot Deploy Dev
+name: Yolo Deploy Dev
 
 on:
   workflow_call:
@@ -12,8 +12,6 @@ on:
       EC2_USERNAME:
         required: true
       EC2_SSH_KEY:
-        required: true
-      TELEGRAM_BOT_TOKEN:
         required: true
       AWS_S3_BUCKET:
         required: true
@@ -62,30 +60,27 @@ jobs:
       - name: Create .env.dev with image and secrets
         run: |
           echo "TAG=${{ github.run_number }}" > .env.dev 
-          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env.dev
           echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env.dev
-          echo "BOT_APP_URL=https://dev.ameer.fursa.click" >> .env.dev
-          echo "EC2_YOLO=10.0.1.195" >> .env.dev
           echo "AWS_REGION=us-east-1" >> .env.dev
 
       - name: Create the main directory
         run: |
-          ssh ec2 "mkdir -p /home/ubuntu/TelegramBot"
+          ssh ec2 "mkdir -p /home/ubuntu/Yolo"
 
-      - name: Clone TelegramBot repo fresh
+      - name: Clone Yolo repo fresh
         env:
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
         run: |
-          ssh ec2 "sudo rm -rf ~/TelegramBot && git clone --branch dev $REPO_URL ~/TelegramBot"
+          ssh ec2 "sudo rm -rf ~/Yolo && git clone --branch dev $REPO_URL ~/Yolo"
 
       - name: Upload .env.dev to EC2
         run: | 
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/private_key .env.dev ec2:/home/ubuntu/TelegramBot/.env
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/private_key .env.dev ec2:/home/ubuntu/Yolo/.env
 
       - name: Deploy using Docker Compose
         run: |
           ssh ec2 << 'EOF'
-            cd ~/TelegramBot
+            cd ~/Yolo
             docker compose -f docker-compose.dev.yaml pull
             docker compose -f docker-compose.dev.yaml down
             docker compose -f docker-compose.dev.yaml up -d
