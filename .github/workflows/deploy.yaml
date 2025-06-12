@@ -1,4 +1,4 @@
-name: Yolo Deploy Dev
+name: Yolo Deploy
 
 on:
   workflow_call:
@@ -17,7 +17,7 @@ on:
         required: true
 
 jobs:
-  deploy_dev:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -57,11 +57,11 @@ jobs:
             sudo usermod -aG docker $USER
           EOF
 
-      - name: Create .env.dev with image and secrets
+      - name: Create .env.prod with image and secrets
         run: |
-          echo "TAG=${{ github.run_number }}" > .env.dev 
-          echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env.dev
-          echo "AWS_REGION=us-east-1" >> .env.dev
+          echo "TAG=${{ github.run_number }}" > .env.prod 
+          echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env.prod
+          echo "AWS_REGION=us-east-1" >> .env.prod
 
       - name: Create the main directory
         run: |
@@ -71,17 +71,17 @@ jobs:
         env:
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
         run: |
-          ssh ec2 "sudo rm -rf ~/Yolo && git clone --branch dev $REPO_URL ~/Yolo"
+          ssh ec2 "sudo rm -rf ~/Yolo && git clone --branch main $REPO_URL ~/Yolo"
 
-      - name: Upload .env.dev to EC2
+      - name: Upload .env.prod to EC2
         run: | 
-          scp -o StrictHostKeyChecking=no -i ~/.ssh/private_key .env.dev ec2:/home/ubuntu/Yolo/.env
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/private_key .env.prod ec2:/home/ubuntu/Yolo/.env
 
       - name: Deploy using Docker Compose
         run: |
           ssh ec2 << 'EOF'
             cd ~/Yolo
-            docker compose -f docker-compose.dev.yaml pull
-            docker compose -f docker-compose.dev.yaml down
-            docker compose -f docker-compose.dev.yaml up -d
+            docker compose -f docker-compose.yaml pull
+            docker compose -f docker-compose.yaml down
+            docker compose -f docker-compose.yaml up -d
           EOF
