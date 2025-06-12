@@ -1,35 +1,29 @@
-# The name of the workflow
 name: Yolo Deploy
 
 on:
-  # The workflow will run when a push is made to branch `main`
-  push:
-    branches:
-     - main
-     
-  # Allow to run it manually as well from GitHub web
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+    secrets:
+      EC2_HOST:
+        required: true
+      EC2_USERNAME:
+        required: true
+      EC2_SSH_KEY:
+        required: true
+      AWS_S3_BUCKET:
+        required: true
 
-# Environment variables 
-env:
-  # The URL of the GitHub repository, taken from GitHub context variables
-  REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
-  # The name of the repository without owner, taken from GitHub context variables
-  REPO_NAME: ${{ github.event.repository.name }}
-          
-# A workflow run is made up of one or more jobs. By default, different jobs are running concurrently
 jobs:
-  # This is a job named `Deploy`
-  Deploy:
-    # The type of machine to run the job on
+  deploy_prod:
     runs-on: ubuntu-latest
-    
-    # A job contains a sequence of tasks called steps
+
     steps:
-      # The first step, named **Checkout code**, 
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
-      
+
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -46,12 +40,48 @@ jobs:
               IdentityFile ~/.ssh/private_key
               StrictHostKeyChecking no
           EOF
-      
-      - name: Copy script to EC2
-        run: |
-          ssh ec2 "if [ -d ~/${REPO_NAME} ]; then cd ~/${REPO_NAME} && git pull --rebase; else git clone ${REPO_URL} ~/${REPO_NAME}; fi"
 
-          
-      - name: Execute script on EC2
+      - name: Install Docker on EC2
         run: |
-          ssh ec2 "cd $REPO_NAME && bash deploy.sh"
+          ssh ec2 << 'EOF'
+            sudo apt-get update
+            sudo apt-get install -y ca-certificates curl gnupg
+            sudo install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc > /dev/null
+            sudo chmod a+r /etc/apt/keyrings/docker.asc
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu jammy stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            sudo apt-get update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            sudo systemctl enable docker
+            sudo systemctl start docker
+            sudo usermod -aG docker $USER
+          EOF
+
+      - name: Create .env.prod with image and secrets
+        run: |
+          echo "TAG=${{ github.run_number }}" > .env.prod 
+          echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env.prod
+          echo "AWS_REGION=us-east-1" >> .env.prod
+
+      - name: Create the main directory
+        run: |
+          ssh ec2 "mkdir -p /home/ubuntu/Yolo"
+
+      - name: Clone Yolo repo fresh
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+        run: |
+          ssh ec2 "sudo rm -rf ~/Yolo && git clone --branch main $REPO_URL ~/Yolo"
+
+      - name: Upload .env.prod to EC2
+        run: | 
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/private_key .env.prod ec2:/home/ubuntu/Yolo/.env
+
+      - name: Deploy using Docker Compose
+        run: |
+          ssh ec2 << 'EOF'
+            cd ~/Yolo
+            docker compose -f docker-compose.yaml pull
+            docker compose -f docker-compose.yaml down
+            docker compose -f docker-compose.yaml up -d
+          EOF
