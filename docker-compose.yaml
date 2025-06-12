@@ -1,8 +1,8 @@
 services:
-  polybot:
-    image: ameertabri/polybot:${TAG}
+  yolo:
+    image: ameertabri/yolo:${TAG}
     restart: always
     env_file:
       - .env
     ports:
-      - "8443:8443"
+      - "8080:8080"
