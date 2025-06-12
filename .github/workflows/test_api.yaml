@@ -4,7 +4,7 @@ name: Yolo API Testing
 on:
   pull_request:
     branches:
-      - main
+      - dev
 
 jobs:
   api-tests:
