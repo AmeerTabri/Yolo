@@ -1,9 +1,9 @@
-name: Yolo Build Dev
+name: Yolo Build
 
 on:
   push:
     branches:
-      - dev
+      - main
 
 jobs:
   Build:
@@ -21,7 +21,7 @@ jobs:
         run: |
           docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOKEN }}"
 
-          img_name=${{ secrets.DOCKERHUB_USERNAME }}/yolo-dev:${{ github.run_number }}
+          img_name=${{ secrets.DOCKERHUB_USERNAME }}/yolo:${{ github.run_number }}
 
           # Export image name as output
           echo "image=$img_name" >> $GITHUB_OUTPUT
@@ -31,11 +31,11 @@ jobs:
 
   Deploy:
     needs: Build
-    uses: ./.github/workflows/deploy_dev.yaml
+    uses: ./.github/workflows/deploy.yaml
     with:
       image: ${{ needs.Build.outputs.image }}
     secrets:
-      EC2_HOST: ${{ secrets.EC2_DEV_HOST }}
+      EC2_HOST: ${{ secrets.EC2_HOST }}
       EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
       EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-      AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET_DEV }}
+      AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
