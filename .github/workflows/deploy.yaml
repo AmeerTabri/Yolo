@@ -15,6 +15,12 @@ on:
         required: true
       AWS_S3_BUCKET:
         required: true
+      SQS_AWS_REGION:
+        required: true
+      QUEUE_URL:
+        required: true
+      POLYBOT_URL:
+        required: true
 
 jobs:
   deploy:
@@ -62,6 +68,9 @@ jobs:
           echo "TAG=${{ github.run_number }}" > .env.prod 
           echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env.prod
           echo "AWS_REGION=us-east-1" >> .env.prod
+          echo "SQS_AWS_REGION=${{ secrets.SQS_AWS_REGION }}" >> .env.prod 
+          echo "QUEUE_URL=${{ secrets.QUEUE_URL }}" >> .env.prod 
+          echo "POLYBOT_URL=${{ secrets.POLYBOT_URL }}" >> .env.prod 
 
       - name: Create the main directory
         run: |
