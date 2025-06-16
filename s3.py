@@ -1,4 +1,6 @@
 import boto3
+from dotenv import load_dotenv
+load_dotenv()
 
 AWS_REGION = "us-east-1"
 AWS_S3_BUCKET = "ameer-polybot-images-dev"
