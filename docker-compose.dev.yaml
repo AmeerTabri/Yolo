@@ -7,6 +7,13 @@ services:
     ports:
       - "8080:8080"
 
+  yolo_consumer:
+    image: ameertabri/yolo-dev:${TAG}
+    restart: always
+    env_file:
+      - .env
+    command: ["python", "consumer.py"]
+
   otelcol-dev:
     image: otel/opentelemetry-collector-contrib:latest
     container_name: otelcol-dev
