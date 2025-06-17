@@ -1,9 +1,10 @@
 import boto3
 from dotenv import load_dotenv
 load_dotenv()
+import os
 
-AWS_REGION = "us-east-1"
-AWS_S3_BUCKET = "ameer-polybot-images-dev"
+AWS_REGION = os.getenv("AWS_REGION")
+AWS_S3_BUCKET = os.getenv("AWS_S3_BUCKET")
 
 s3 = boto3.client("s3", region_name=AWS_REGION)  # region is optional
 
