@@ -13,7 +13,7 @@ load_dotenv()
 SQS_REGION = os.getenv("SQS_AWS_REGION")
 QUEUE_URL = os.getenv("QUEUE_URL")
 POLYBOT_URL = os.getenv("POLYBOT_URL")
-YOLO_API_URL = http://localhost:8080
+YOLO_API_URL = "http://localhost:8080"
 
 sqs = boto3.client('sqs', region_name=SQS_REGION)
 
@@ -44,11 +44,12 @@ while True:
             # === Download image from S3 ===
             download_image_from_s3(chat_id, image_name, original_path)
 
-            # === Call YOLO FastAPI `/predict` ===
+            # === Call YOLO FastAPI `/predict` with file + chat_id ===
             with open(original_path, "rb") as f:
                 predict_response = requests.post(
                     f"{YOLO_API_URL}/predict",
-                    files={"file": f}
+                    files={"file": f},
+                    data={"chat_id": chat_id}  # ✅ Pass chat_id properly!
                 )
             predict_response.raise_for_status()
             predict_data = predict_response.json()
