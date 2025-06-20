@@ -67,10 +67,12 @@ jobs:
         run: |
           echo "TAG=${{ github.run_number }}" > .env.dev 
           echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env.dev
-          echo "AWS_REGION=us-east-1" >> .env.dev
+          echo "AWS_REGION=us-west-2" >> .env.dev
           echo "SQS_AWS_REGION=${{ secrets.SQS_AWS_REGION }}" >> .env.dev 
           echo "QUEUE_URL=${{ secrets.QUEUE_URL }}" >> .env.dev 
           echo "POLYBOT_URL=${{ secrets.POLYBOT_URL }}" >> .env.dev 
+          echo "DYNAMODB_REGION=us-west-2" >> .env.dev    
+          echo "DYNAMODB_TABLE=AmeerPredictionsDev" >> .env.dev   
 
       - name: Create the main directory
         run: |
