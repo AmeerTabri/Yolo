@@ -21,7 +21,7 @@ app = FastAPI()
 UPLOAD_DIR = "uploads/original"
 PREDICTED_DIR = "uploads/predicted"
 DB_PATH = "predictions.db"
-DYNAMODB_TABLE = os.getenv("DYNAMODB_TABLE", "AmeerPredictions")
+DYNAMODB_TABLE = os.getenv("DYNAMODB_TABLE", "AmeerPredictionsDev")
 DYNAMODB_REGION = os.getenv("AWS_REGION", "us-west-2")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
