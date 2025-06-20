@@ -143,7 +143,6 @@ class SQLiteStorage(StorageInterface):
                 WHERE do.score >= ?
             """, (min_score,)).fetchall()
             return [{"uid": row["uid"], "timestamp": row["timestamp"]} for row in rows]
-
 # === DynamoDB Storage ===
 
 class DynamoDBStorage(StorageInterface):
@@ -153,17 +152,20 @@ class DynamoDBStorage(StorageInterface):
     def save_prediction(self, prediction_id, chat_id, original_image, predicted_image):
         self.table.put_item(
             Item={
-                'PredictionID': prediction_id,
-                'ChatID': chat_id,
+                'PredictionID': prediction_id,   # ✅ partition key
+                'ChatID': chat_id,               # ✅ sort key
                 'OriginalImagePath': original_image,
                 'PredictedImagePath': predicted_image,
                 'Detections': []
             }
         )
 
-    def save_detection(self, prediction_id, label, score, box):
+    def save_detection(self, prediction_id, chat_id, label, score, box):
         self.table.update_item(
-            Key={'PredictionID': prediction_id},
+            Key={
+                'PredictionID': prediction_id,   # ✅ partition key
+                'ChatID': chat_id                # ✅ sort key
+            },
             UpdateExpression="SET Detections = list_append(if_not_exists(Detections, :empty), :det)",
             ExpressionAttributeValues={
                 ':det': [{'Label': label, 'Score': Decimal(str(score)), 'Box': str(box)}],
@@ -171,8 +173,13 @@ class DynamoDBStorage(StorageInterface):
             }
         )
 
-    def get_prediction(self, prediction_id):
-        response = self.table.get_item(Key={'PredictionID': prediction_id})
+    def get_prediction(self, prediction_id, chat_id):
+        response = self.table.get_item(
+            Key={
+                'PredictionID': prediction_id,   # ✅ partition key
+                'ChatID': chat_id                # ✅ sort key
+            }
+        )
         item = response.get('Item')
         if not item:
             return None

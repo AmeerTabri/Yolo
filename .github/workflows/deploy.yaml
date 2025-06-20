@@ -67,7 +67,7 @@ jobs:
         run: |
           echo "TAG=${{ github.run_number }}" > .env.prod 
           echo "AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}" >> .env.prod
-          echo "AWS_REGION=us-east-1" >> .env.prod
+          echo "AWS_REGION=us-west-2" >> .env.prod
           echo "SQS_AWS_REGION=${{ secrets.SQS_AWS_REGION }}" >> .env.prod 
           echo "QUEUE_URL=${{ secrets.QUEUE_URL }}" >> .env.prod 
           echo "POLYBOT_URL=${{ secrets.POLYBOT_URL }}" >> .env.prod 
