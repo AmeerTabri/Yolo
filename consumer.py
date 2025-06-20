@@ -34,22 +34,23 @@ while True:
 
     for msg in messages:
         body = json.loads(msg['Body'])
-        image_name = body['image_name']
+        image_id = body['image_id']
         chat_id = body['chat_id']
 
         uid = str(uuid.uuid4())
-        original_path = f"/tmp/{uid}_original_{image_name}"
+        original_path = f"/tmp/{uid}_original_{image_id}.jpg"
 
         try:
             # === Download image from S3 ===
-            download_image_from_s3(chat_id, image_name, original_path)
+            download_image_from_s3(chat_id, image_id, original_path)
 
             # === Call YOLO FastAPI `/predict` with file + chat_id ===
             with open(original_path, "rb") as f:
+                print("files = ", f)
                 predict_response = requests.post(
                     f"{YOLO_API_URL}/predict",
                     files={"file": f},
-                    data={"chat_id": chat_id}  # ✅ Pass chat_id properly!
+                    data={"chat_id": chat_id, "image_id": image_id}
                 )
             predict_response.raise_for_status()
             predict_data = predict_response.json()
@@ -60,7 +61,7 @@ while True:
             callback_payload = {
                 "chat_id": chat_id,
                 "labels": labels,
-                "image_name": image_name
+                "image_id": image_id
             }
             callback_response = requests.post(
                 f"{POLYBOT_URL}/yolo_callback",
@@ -68,7 +69,7 @@ while True:
             )
             print(f"✅ Callback sent to Polybot: {callback_response.status_code}")
 
-            print(f"✅ Processed: {chat_id}/{image_name} Labels: {labels}")
+            print(f"✅ Processed: {chat_id}/{image_id} Labels: {labels}")
 
         except Exception as e:
             print(f"❌ Error processing message: {e}")

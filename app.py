@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, Form
 from fastapi.responses import FileResponse
 from ultralytics import YOLO
 from PIL import Image
@@ -201,10 +201,10 @@ else:
 # === Routes ===
 
 @app.post("/predict")
-async def predict(request: Request, file: Optional[UploadFile] = File(None)):
+async def predict(request: Request, file: Optional[UploadFile] = File(None), chat_id: Optional[str] = Form(None), image_id: Optional[str] = Form(None)):
     uid = str(uuid.uuid4())
     ext = ".jpg"
-    chat_id = image_name = None
+    image_name = None
 
     try:
         json_data = await request.json()
@@ -214,6 +214,7 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None)):
 
             original_path = f"/tmp/{uid}_original_{image_name}"
             predicted_path = f"/tmp/{uid}_predicted_{image_name}"
+
             download_image_from_s3(chat_id, image_name, original_path)
             ext = os.path.splitext(image_name)[1]
         else:
@@ -221,12 +222,17 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None)):
     except:
         if file is not None:
             ext = os.path.splitext(file.filename)[1]
-            original_path = os.path.join("/tmp", uid + ext)
-            predicted_path = os.path.join("/tmp", uid + "_predicted" + ext)
+            image_name = f"{uid}{ext}"  # ✅ make sure to define image_name for file uploads too
+            original_path = os.path.join("/tmp", image_name)
+            predicted_path = os.path.join("/tmp", f"predicted_{image_name}")
             with open(original_path, "wb") as f:
                 shutil.copyfileobj(file.file, f)
         else:
             raise HTTPException(status_code=400, detail="No image_name+chat_id or file provided")
+
+    # ✅ Now define S3 keys AFTER both branches, guaranteed to work:
+    s3_original_key = f"{chat_id}/original/image_{image_id}.jpg"
+    s3_predicted_key = f"{chat_id}/predicted/image_{image_id}.jpg"
 
     results = model(original_path, device="cpu")
     annotated_frame = results[0].plot()
@@ -234,9 +240,9 @@ async def predict(request: Request, file: Optional[UploadFile] = File(None)):
     annotated_image.save(predicted_path)
 
     if chat_id:
-        upload_predicted_image_to_s3(chat_id, image_name, predicted_path)
+        upload_predicted_image_to_s3(chat_id, image_id, predicted_path)
 
-    storage.save_prediction(uid, chat_id, original_path, predicted_path)
+    storage.save_prediction(uid, chat_id, s3_original_key, s3_predicted_key)
 
     detected_labels = []
     for box in results[0].boxes:
