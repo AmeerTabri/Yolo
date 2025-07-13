@@ -9,31 +9,35 @@ jobs:
   Build:
     runs-on: ubuntu-latest
     outputs:
-      image: ${{ steps.set_output.outputs.image }}
+      yolo_image: ${{ steps.set_yolo.outputs.image }}
+      consumer_image: ${{ steps.set_consumer.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
-        id: set_output
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to DockerHub
         run: |
           docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" -p "${{ secrets.DOCKERHUB_TOKEN }}"
 
-          img_name=${{ secrets.DOCKERHUB_USERNAME }}/yolo-dev:${{ github.run_number }}
+      - name: Build YOLO Docker image
+        id: set_yolo
+        run: |
+          yolo_img=${{ secrets.DOCKERHUB_USERNAME }}/yolo-dev:${{ github.run_number }}
+          echo "image=$yolo_img" >> $GITHUB_OUTPUT
+          docker build --push -t $yolo_img .
 
-          # Export image name as output
-          echo "image=$img_name" >> $GITHUB_OUTPUT
-
-          # Build and push image
-          docker build --push -t $img_name .
+      - name: Build Consumer Docker image
+        id: set_consumer
+        run: |
+          consumer_img=${{ secrets.DOCKERHUB_USERNAME }}/yolo-consumer-dev:${{ github.run_number }}
+          echo "image=$consumer_img" >> $GITHUB_OUTPUT
+          docker build --push -f Dockerfile.consumer -t $consumer_img .
 
   Deploy:
     needs: Build
     uses: ./.github/workflows/deploy_dev.yaml
     with:
-      image: ${{ needs.Build.outputs.image }}
+      image: ${{ needs.Build.outputs.yolo_image }}
+      consumer_image: ${{ needs.Build.outputs.consumer_image }}
     secrets:
       EC2_HOST: ${{ secrets.EC2_DEV_HOST }}
       EC2_USERNAME: ${{ secrets.EC2_USERNAME }}

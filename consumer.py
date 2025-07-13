@@ -13,7 +13,7 @@ load_dotenv()
 SQS_REGION = os.getenv("SQS_AWS_REGION")
 QUEUE_URL = os.getenv("QUEUE_URL")
 POLYBOT_URL = os.getenv("POLYBOT_URL")
-YOLO_API_URL = "http://localhost:8080"
+YOLO_API_URL = "http://service-yolo:8080"
 
 sqs = boto3.client('sqs', region_name=SQS_REGION)
 
