@@ -55,4 +55,5 @@ jobs:
           python -m test.test_6_get_original_by_image
           
           echo -e "\n\nTesting get predicted image \n"
-          python -m test.test_7_get_predicted_image\
+          python -m test.test_7_get_predicted_image
+
